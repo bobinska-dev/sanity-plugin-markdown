@@ -1,11 +1,11 @@
 import {type Options as EasyMdeOptions} from 'easymde'
 import {lazy, Suspense, useCallback, useMemo, useSyncExternalStore} from 'react'
 // dont import non-types here, it will break SSR on next
+import {Box, Text} from '@sanity/ui'
 import type {SimpleMDEReactProps} from 'react-simplemde-editor'
 import {PatchEvent, set, StringInputProps, unset, useClient} from 'sanity'
 import {MarkdownOptions} from '../schema'
 import {MarkdownInputStyles} from './MarkdownInputStyles'
-import {Box, Text} from '@sanity/ui'
 
 const SimpleMdeReact = lazy(() => import('react-simplemde-editor'))
 
@@ -41,8 +41,9 @@ export function MarkdownInput(props: MarkdownInputProps) {
     value = '',
     onChange,
     elementProps: {onBlur, onFocus, ref},
-    reactMdeProps: {options: mdeCustomOptions, ...reactMdeProps} = {},
+    reactMdeProps: {options: mdeCustomOptions, textareaProps, ...reactMdeProps} = {},
     schemaType,
+    readOnly,
   } = props
   const client = useClient({apiVersion: '2022-01-01'})
   const {imageUrl} = (schemaType.options as MarkdownOptions | undefined) ?? {}
@@ -60,18 +61,24 @@ export function MarkdownInput(props: MarkdownInputProps) {
     [client, imageUrl],
   )
 
-  const mdeOptions: EasyMdeOptions = useMemo(() => {
+  const mdeProps: SimpleMDEReactProps = useMemo(() => {
     return {
-      autofocus: false,
-      spellChecker: false,
-      sideBySideFullscreen: false,
-      uploadImage: true,
-      imageUploadFunction: imageUpload,
-      toolbar: defaultMdeTools,
-      status: false,
-      ...mdeCustomOptions,
+      textareaProps: {
+        disabled: readOnly,
+        ...textareaProps,
+      },
+      options: {
+        autofocus: false,
+        spellChecker: false,
+        sideBySideFullscreen: false,
+        uploadImage: true,
+        imageUploadFunction: imageUpload,
+        toolbar: defaultMdeTools,
+        status: false,
+        ...mdeCustomOptions,
+      },
     }
-  }, [imageUpload, mdeCustomOptions])
+  }, [imageUpload, mdeCustomOptions, textareaProps, readOnly])
 
   const handleChange = useCallback(
     (newValue: string) => {
@@ -95,12 +102,13 @@ export function MarkdownInput(props: MarkdownInputProps) {
       <Suspense fallback={fallback}>
         <SimpleMdeReact
           {...reactMdeProps}
+          textareaProps={mdeProps.textareaProps}
           ref={ref}
           value={value}
           onChange={handleChange}
           onBlur={onBlur}
           onFocus={onFocus}
-          options={mdeOptions}
+          options={mdeProps.options}
           spellCheck={false}
         />
       </Suspense>
